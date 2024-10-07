@@ -1,5 +1,8 @@
 import dbLocal from "db-local";
-import crypto from 'crypto'
+import crypto from 'node:crypto'
+import bcrypt from 'bcrypt'
+
+import { SALT_ROUNDS } from "./config.js";
 
 const { Schema } = new dbLocal({ path: './db' })
 
@@ -18,15 +21,18 @@ export class UserRepository {
         if (typeof password !== 'string') throw new Error('passsword must be a string')
         if (password.length < 6) throw new Error('password must be at least 6 characters long')
 
+        
+
         const user = User.findOne({ username })
         if (user) throw new Error('username already exists')
 
         const id = crypto.randomUUID()
+        const hashedPassword = bcrypt.hashSync(password, SALT_ROUNDS)
 
         User.create({
             _id: id,
             username,
-            password
+            password: hashedPassword
         }).save()
 
         return id
