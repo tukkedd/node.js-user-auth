@@ -7,7 +7,7 @@ app.set('view engine', 'ejs')
 app.use(express.json()) // middelware ve si en la peticion tiene que transformar a json, revisa el cuerpo 
 
 app.get('/', (req, res) => {
-    res.render('example', { username: 'Jean' })
+    res.render('index')
 })
 
 app.post('/login', async (req, res) => {
@@ -33,7 +33,9 @@ app.post('/register', async (req, res) => {
 })
 app.post('/logout', (req, res) => { })
 
-app.post('/protected', (req, res) => { })
+app.post('/protected', (req, res) => {
+    
+})
 
 app.listen(PORT, () => {
     console.log(`Server is running on port http://localhost:${PORT}`)
