@@ -24,21 +24,19 @@ app.post('/login', async (req, res) => {
             expiresIn: '1h'
         })
         res
-        .cookie('access_token', token, {
-            httpOnly: true,     // esto es que la cookie "solo" se puede acceder en el Servidor
-            secure: process.env.NODE_ENV === 'production', // la cookie solo se puede acceder en https
-            sameSite: 'strict', // la cookie solo se puede acceder en el mismo dominio,
-            maxAge: 1000 * 60 * 60 // la cookie solo tiene validez de 1h
-        })
-        .send({ user, token })
+            .cookie('access_token', token, {
+                httpOnly: true,     // esto es que la cookie "solo" se puede acceder en el Servidor
+                secure: process.env.NODE_ENV === 'production', // la cookie solo se puede acceder en https
+                sameSite: 'strict', // la cookie solo se puede acceder en el mismo dominio,
+                maxAge: 1000 * 60 * 60 // la cookie solo tiene validez de 1h
+            })
+            .send({ user, token })
     } catch (error) {
         res.status(401).send(error.message)
     }
 })
 app.post('/register', async (req, res) => {
     const { username, password } = req.body
-
-
     try {
         const id = await UserRepository.create({ username, password })
         res.send({ id })
@@ -49,7 +47,17 @@ app.post('/register', async (req, res) => {
 app.post('/logout', (req, res) => { })
 
 app.post('/protected', (req, res) => {
-    
+    const token = req.cookies.access_token
+    if (!token) {
+        return res.status(401).send('Access not authorized')
+    }
+
+    try {
+        const data = jwt.verify(token, SECRET_JWT_KEY)
+        res.render('protected', data)  //  {_id, username}
+    } catch(error) {
+        return res.status(401).send('Access not authorized')
+    }
 })
 
 app.listen(PORT, () => {
