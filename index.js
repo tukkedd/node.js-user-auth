@@ -11,8 +11,21 @@ app.set('view engine', 'ejs')
 app.use(express.json()) // middelware ve si en la peticion tiene que transformar a json, revisa el cuerpo 
 app.use(cookieParser())
 
+app.use((req, res, next) => {
+    const token = req.cookies.access_token
+    req.session = { user: null }
+
+    try {
+        const data = jwt.verify(token, SECRET_JWT_KEY)
+        req.session.user = data
+    } catch (error) { }
+
+    next() // seguir a la siguiente ruta o middleware
+}) 
+
 app.get('/', (req, res) => {
-    res.render('index')
+    const { user } = req.session
+    res.render('index', user)
 })
 
 app.post('/login', async (req, res) => {
@@ -20,8 +33,14 @@ app.post('/login', async (req, res) => {
 
     try {
         const user = await UserRepository.login({ username, password })
-        const token = jwt.sign({ id: user._id, username: user.username }, SECRET_JWT_KEY, {
+        const token = jwt.sign({ id: user._id, username: user.username }, 
+            SECRET_JWT_KEY, {
             expiresIn: '1h'
+        })
+
+        const refreshToken = jwt.sign({ id: user._id, username: user.username }, 
+            SECRET_JWT_KEY, {
+            expiresIn: '7d'
         })
         res
             .cookie('access_token', token, {
@@ -35,6 +54,7 @@ app.post('/login', async (req, res) => {
         res.status(401).send(error.message)
     }
 })
+
 app.post('/register', async (req, res) => {
     const { username, password } = req.body
     try {
@@ -44,21 +64,20 @@ app.post('/register', async (req, res) => {
         res.status(400).send(e.message)
     }
 })
-app.post('/logout', (req, res) => { })
+app.post('/logout', (req, res) => {
+    res
+        .clearCookie('access_token')
+        .json({message: 'Logout successful'})
+})
 
 app.post('/protected', (req, res) => {
-    const token = req.cookies.access_token
-    if (!token) {
-        return res.status(401).send('Access not authorized')
-    }
-
-    try {
-        const data = jwt.verify(token, SECRET_JWT_KEY)
-        res.render('protected', data)  //  {_id, username}
-    } catch(error) {
-        return res.status(401).send('Access not authorized')
-    }
+    const user = req.session
+    if (!user) return res.status(403).send('Access not authorized')
+        
+    res.render('protected', data)  //  {_id, username}
+    
 })
+
 
 app.listen(PORT, () => {
     console.log(`Server is running on port http://localhost:${PORT}`)
